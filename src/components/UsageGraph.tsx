@@ -15,7 +15,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>)
     return (
       <div className="glass-panel p-3 shadow-md">
         <p className="text-sm font-medium">{label}</p>
-        <p className="text-sm text-gas-blue font-medium">
+        <p className="text-sm text-gas-red font-medium">
           {`${payload[0].value} cubic ft`}
         </p>
       </div>
@@ -29,7 +29,7 @@ const UsageGraph: React.FC<UsageGraphProps> = ({ data, className }) => {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
   
   const getChartColor = () => {
-    return '#007AFF'; // gas-blue
+    return '#ea384c'; // gas-red
   };
 
   const filterDataByTimeRange = () => {
@@ -48,7 +48,7 @@ const UsageGraph: React.FC<UsageGraphProps> = ({ data, className }) => {
             variant={timeRange === 'week' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setTimeRange('week')}
-            className={timeRange === 'week' ? 'bg-gas-blue hover:bg-gas-blue/90' : ''}
+            className={timeRange === 'week' ? 'bg-gas-red hover:bg-gas-red/90' : ''}
           >
             Week
           </Button>
@@ -56,7 +56,7 @@ const UsageGraph: React.FC<UsageGraphProps> = ({ data, className }) => {
             variant={timeRange === 'month' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setTimeRange('month')}
-            className={timeRange === 'month' ? 'bg-gas-blue hover:bg-gas-blue/90' : ''}
+            className={timeRange === 'month' ? 'bg-gas-red hover:bg-gas-red/90' : ''}
           >
             Month
           </Button>
@@ -64,7 +64,7 @@ const UsageGraph: React.FC<UsageGraphProps> = ({ data, className }) => {
             variant={timeRange === 'year' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setTimeRange('year')}
-            className={timeRange === 'year' ? 'bg-gas-blue hover:bg-gas-blue/90' : ''}
+            className={timeRange === 'year' ? 'bg-gas-red hover:bg-gas-red/90' : ''}
           >
             Year
           </Button>
