@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import StatusBadge from './StatusBadge';
+import { Progress } from '@/components/ui/progress';
 
 type GasCylinderProps = {
   level: number;
@@ -41,14 +42,37 @@ const GasCylinder: React.FC<GasCylinderProps> = ({ level, className }) => {
     return 'opacity-90';
   };
 
+  const getTextColor = () => {
+    if (level > 70) return 'text-gas-green';
+    if (level >= 40) return 'text-gas-yellow';
+    return 'text-gas-red';
+  };
+
   return (
     <div className={cn('flex flex-col items-center', className)}>
-      <div className="mb-2 flex items-center justify-center text-sm">
-        <span className="font-medium mr-2">Gas Level: {level}%</span>
-        <StatusBadge level={level} />
+      {/* Large percentage display */}
+      <div className="mb-4 text-center">
+        <div className={cn('text-5xl font-bold mb-1 transition-colors', getTextColor())}>
+          {level}%
+        </div>
+        <div className="flex items-center justify-center">
+          <StatusBadge level={level} />
+        </div>
       </div>
       
-      <div className="cylinder-container h-64 w-40 mx-auto" style={{ boxShadow: '0 10px 30px -15px rgba(0,0,0,0.15)' }}>
+      {/* Progress bar */}
+      <div className="w-full mb-6">
+        <Progress 
+          value={level} 
+          className="h-3 w-full"
+          style={{
+            background: 'rgba(0,0,0,0.05)',
+            '--tw-gradient-from': level > 70 ? '#34C759' : level >= 40 ? '#F8B84E' : '#ea384c'
+          } as React.CSSProperties}
+        />
+      </div>
+      
+      <div className="cylinder-container h-56 w-36 mx-auto" style={{ boxShadow: '0 10px 30px -15px rgba(0,0,0,0.15)' }}>
         {/* Top cap */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/4 w-16 h-4 bg-gray-300 rounded-full z-10"></div>
         
