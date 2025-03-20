@@ -10,6 +10,9 @@ type GasCylinderProps = {
 };
 
 const GasCylinder: React.FC<GasCylinderProps> = ({ level, className }) => {
+  // Format the level to display with 2 decimal places
+  const formattedLevel = level.toFixed(2);
+  
   const [animateLevel, setAnimateLevel] = useState(0);
   const [bubbles, setBubbles] = useState<Array<{ id: number; left: number; delay: number; size: number }>>([]);
 
@@ -53,7 +56,7 @@ const GasCylinder: React.FC<GasCylinderProps> = ({ level, className }) => {
       {/* Large percentage display */}
       <div className="mb-4 text-center">
         <div className={cn('text-5xl font-bold mb-1 transition-colors', getTextColor())}>
-          {level}%
+          {formattedLevel}%
         </div>
         <div className="flex items-center justify-center">
           <StatusBadge level={level} />
