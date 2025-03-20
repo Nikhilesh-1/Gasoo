@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, Gauge, AlertTriangle, BarChart3 } from 'lucide-react';
 
 const Index = () => {
-  const [gasLevel, setGasLevel] = useState(85);
+  const [gasLevel, setGasLevel] = useState(35);
   const [usageData, setUsageData] = useState(generateUsageData());
   const [averageDailyUsage, setAverageDailyUsage] = useState(0);
   const [daysRemaining, setDaysRemaining] = useState(0);
