@@ -1,93 +1,21 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import GasCylinder from '@/components/GasCylinder';
 import UsageGraph from '@/components/UsageGraph';
 import RemoteControl from '@/components/RemoteControl';
 import StatusBadge from '@/components/StatusBadge';
-import SensorSetup from '@/components/SensorSetup';
 import { calculateDaysRemaining, generateUsageData, calculateAverageDailyUsage } from '@/utils/gasUtils';
-import { streamSensorData, SensorReading } from '@/utils/sensorUtils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Clock, 
-  Calendar, 
-  Gauge, 
-  AlertTriangle, 
-  BarChart3,
-  WifiOff
-} from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Clock, Calendar, Gauge, AlertTriangle, BarChart3 } from 'lucide-react';
 
 const Index = () => {
   const [gasLevel, setGasLevel] = useState(35);
   const [usageData, setUsageData] = useState(generateUsageData());
   const [averageDailyUsage, setAverageDailyUsage] = useState(0);
   const [daysRemaining, setDaysRemaining] = useState(0);
-  const [connectedSensorId, setConnectedSensorId] = useState<string | null>(null);
-  const [showSetup, setShowSetup] = useState(true);
-  const [lastReading, setLastReading] = useState<SensorReading | null>(null);
-  
-  // Handle incoming sensor data
-  const handleSensorData = useCallback((reading: SensorReading) => {
-    setLastReading(reading);
-    setGasLevel(reading.level);
-    
-    // Update usage data with new reading
-    setUsageData(prevData => {
-      const today = new Date().toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      });
-      
-      // Check if we already have an entry for today
-      const existingTodayIndex = prevData.findIndex(item => item.date === today);
-      
-      if (existingTodayIndex >= 0) {
-        // Update today's usage
-        const newData = [...prevData];
-        // In a real app, we'd calculate the actual usage instead of setting directly
-        newData[existingTodayIndex] = { 
-          date: today, 
-          usage: Math.floor(Math.random() * 10) + 15 // Just for simulation
-        };
-        return newData;
-      } else {
-        // Add today's usage
-        return [
-          ...prevData.slice(1), // Remove the oldest day
-          { 
-            date: today, 
-            usage: Math.floor(Math.random() * 10) + 15 // Just for simulation
-          }
-        ];
-      }
-    });
-  }, []);
 
-  // Handle sensor connection
-  const handleSensorConnected = useCallback((deviceId: string) => {
-    setConnectedSensorId(deviceId);
-    setShowSetup(false);
-    
-    toast({
-      title: "Live monitoring active",
-      description: "Now receiving real-time data from your gas cylinder.",
-    });
-  }, []);
-
-  // Setup data streaming when sensor is connected
-  useEffect(() => {
-    if (!connectedSensorId) return;
-    
-    // Start streaming data from the sensor
-    const cleanupStream = streamSensorData(connectedSensorId, handleSensorData);
-    
-    // Clean up the data stream when component unmounts or sensor changes
-    return cleanupStream;
-  }, [connectedSensorId, handleSensorData]);
-
-  // Calculate statistics based on current data
+  // Simulate a live data feed by slightly changing the gas level periodically
   useEffect(() => {
     // Calculate average daily usage from usage data
     const avgUsage = calculateAverageDailyUsage(usageData);
@@ -96,6 +24,17 @@ const Index = () => {
     // Calculate days remaining based on current level and average usage
     const days = calculateDaysRemaining(gasLevel, avgUsage);
     setDaysRemaining(days);
+
+    // Simulate gas usage over time (decreasing level)
+    const interval = setInterval(() => {
+      setGasLevel(prevLevel => {
+        // Decrease by a small random amount (0.1 to 0.3)
+        const decrease = Math.random() * 0.2 + 0.1;
+        return Math.max(0, prevLevel - decrease);
+      });
+    }, 10000); // Update every 10 seconds
+
+    return () => clearInterval(interval);
   }, [gasLevel, usageData]);
 
   return (
@@ -107,16 +46,8 @@ const Index = () => {
             <p className="text-muted-foreground mt-1">Real-time monitoring and control for your gas system</p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={`px-3 py-1 text-xs bg-white ${connectedSensorId ? 'text-green-600' : 'text-red-500'}`}>
-              {connectedSensorId ? (
-                <>
-                  <Clock size={14} className="mr-1" /> Live Data
-                </>
-              ) : (
-                <>
-                  <WifiOff size={14} className="mr-1" /> Offline
-                </>
-              )}
+            <Badge variant="outline" className="px-3 py-1 text-xs bg-white">
+              <Clock size={14} className="mr-1" /> Live Data
             </Badge>
             <Badge variant="outline" className="px-3 py-1 text-xs bg-white">
               <Calendar size={14} className="mr-1" /> {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -126,90 +57,69 @@ const Index = () => {
       </header>
 
       <main className="max-w-6xl mx-auto">
-        {showSetup ? (
-          <SensorSetup onSensorConnected={handleSensorConnected} />
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Cylinder visualization */}
-            <Card className="dashboard-card lg:col-span-1 overflow-visible animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-xl font-semibold">Gas Level</h2>
-                  <StatusBadge level={gasLevel} />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Cylinder visualization */}
+          <Card className="dashboard-card lg:col-span-1 overflow-visible animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-semibold">Gas Level</h2>
+                <StatusBadge level={gasLevel} />
+              </div>
+              <GasCylinder level={gasLevel} />
+            </CardContent>
+          </Card>
+
+          {/* Usage Graph */}
+          <Card className="dashboard-card lg:col-span-2 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <UsageGraph data={usageData} />
+          </Card>
+
+          {/* Estimated days remaining */}
+          <Card className="dashboard-card animate-slide-up" style={{ animationDelay: '0.3s' }}>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-semibold">Estimated Days Remaining</h2>
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <Gauge size={14} /> Usage Stats
+                </Badge>
+              </div>
+              
+              <div className="flex flex-col items-center justify-center h-48">
+                <div className="text-6xl font-bold mb-2 animate-pulse-subtle" style={{ color: gasLevel > 40 ? '#34C759' : '#ea384c' }}>
+                  {daysRemaining}
                 </div>
-                <GasCylinder level={gasLevel} />
+                <div className="text-lg text-muted-foreground">Days</div>
                 
-                {lastReading && lastReading.temperature && (
-                  <div className="mt-4 bg-gray-50 p-3 rounded-md text-sm">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-muted-foreground">Temperature:</span>
-                        <span className="float-right font-medium">{lastReading.temperature.toFixed(1)}°C</span>
-                      </div>
-                      {lastReading.pressure && (
-                        <div>
-                          <span className="text-muted-foreground">Pressure:</span>
-                          <span className="float-right font-medium">{lastReading.pressure.toFixed(1)} PSI</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Usage Graph */}
-            <Card className="dashboard-card lg:col-span-2 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <UsageGraph data={usageData} />
-            </Card>
-
-            {/* Estimated days remaining */}
-            <Card className="dashboard-card animate-slide-up" style={{ animationDelay: '0.3s' }}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-xl font-semibold">Estimated Days Remaining</h2>
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <Gauge size={14} /> Usage Stats
-                  </Badge>
+                <div className="mt-6 flex items-center gap-2 text-sm bg-secondary px-3 py-2 rounded-full">
+                  <BarChart3 size={16} className="text-gas-blue" />
+                  <span>Avg. Daily Usage: <strong>{averageDailyUsage} cubic ft</strong></span>
                 </div>
-                
-                <div className="flex flex-col items-center justify-center h-48">
-                  <div className="text-6xl font-bold mb-2 animate-pulse-subtle" style={{ color: gasLevel > 40 ? '#34C759' : '#ea384c' }}>
-                    {daysRemaining}
-                  </div>
-                  <div className="text-lg text-muted-foreground">Days</div>
-                  
-                  <div className="mt-6 flex items-center gap-2 text-sm bg-secondary px-3 py-2 rounded-full">
-                    <BarChart3 size={16} className="text-gas-blue" />
-                    <span>Avg. Daily Usage: <strong>{averageDailyUsage} cubic ft</strong></span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Remote Control */}
-            <Card className="dashboard-card animate-slide-up" style={{ animationDelay: '0.4s' }}>
-              <RemoteControl />
-            </Card>
+          {/* Remote Control */}
+          <Card className="dashboard-card animate-slide-up" style={{ animationDelay: '0.4s' }}>
+            <RemoteControl />
+          </Card>
 
-            {/* Safety Information */}
-            <Card className="dashboard-card animate-slide-up" style={{ animationDelay: '0.5s' }}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-xl font-semibold">Safety Information</h2>
-                  <AlertTriangle size={20} className="text-gas-yellow" />
-                </div>
-                
-                <div className="mt-2 space-y-4 text-sm">
-                  <p>• <strong>Emergency Contacts:</strong> Keep emergency gas service numbers readily available.</p>
-                  <p>• <strong>Regular Maintenance:</strong> Schedule routine inspections of your gas system.</p>
-                  <p>• <strong>Low Level Warning:</strong> Order a refill when your gas level drops below 30%.</p>
-                  <p>• <strong>Shut Off:</strong> Use the remote valve control to shut off gas supply in case of emergency.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          {/* Safety Information */}
+          <Card className="dashboard-card animate-slide-up" style={{ animationDelay: '0.5s' }}>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-semibold">Safety Information</h2>
+                <AlertTriangle size={20} className="text-gas-yellow" />
+              </div>
+              
+              <div className="mt-2 space-y-4 text-sm">
+                <p>• <strong>Emergency Contacts:</strong> Keep emergency gas service numbers readily available.</p>
+                <p>• <strong>Regular Maintenance:</strong> Schedule routine inspections of your gas system.</p>
+                <p>• <strong>Low Level Warning:</strong> Order a refill when your gas level drops below 30%.</p>
+                <p>• <strong>Shut Off:</strong> Use the remote valve control to shut off gas supply in case of emergency.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </main>
       
       <footer className="max-w-6xl mx-auto mt-12 text-center text-xs text-muted-foreground">
