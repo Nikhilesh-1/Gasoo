@@ -4,18 +4,55 @@ import GasCylinder from '@/components/GasCylinder';
 import UsageGraph from '@/components/UsageGraph';
 import RemoteControl from '@/components/RemoteControl';
 import StatusBadge from '@/components/StatusBadge';
-import { calculateDaysRemaining, generateUsageData, calculateAverageDailyUsage } from '@/utils/gasUtils';
+import { calculateDaysRemaining, calculateAverageDailyUsage } from '@/utils/gasUtils';
+import { getLatestReading, getReadings, addReading } from '@/services/apiService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, Gauge, AlertTriangle, BarChart3 } from 'lucide-react';
 
 const Index = () => {
   const [gasLevel, setGasLevel] = useState(35);
-  const [usageData, setUsageData] = useState(generateUsageData());
+  const [usageData, setUsageData] = useState<Array<{ date: string; usage: number }>>([]);
   const [averageDailyUsage, setAverageDailyUsage] = useState(0);
   const [daysRemaining, setDaysRemaining] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate a live data feed by slightly changing the gas level periodically
+  // Fetch data from backend API
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      
+      // Get the latest gas level
+      const latestReading = await getLatestReading();
+      if (latestReading) {
+        setGasLevel(latestReading.level);
+      }
+      
+      // Get historical usage data
+      const readings = await getReadings();
+      if (readings.length > 0) {
+        const formattedData = readings.map(reading => ({
+          date: new Date(reading.timestamp).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+          }),
+          usage: reading.level
+        }));
+        setUsageData(formattedData);
+      }
+      
+      setIsLoading(false);
+    };
+    
+    fetchData();
+    
+    // Periodically update data
+    const interval = setInterval(fetchData, 30000); // Update every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Calculate average daily usage and days remaining
   useEffect(() => {
     // Calculate average daily usage from usage data
     const avgUsage = calculateAverageDailyUsage(usageData);
@@ -24,18 +61,24 @@ const Index = () => {
     // Calculate days remaining based on current level and average usage
     const days = calculateDaysRemaining(gasLevel, avgUsage);
     setDaysRemaining(days);
-
-    // Simulate gas usage over time (decreasing level)
-    const interval = setInterval(() => {
-      setGasLevel(prevLevel => {
-        // Decrease by a small random amount (0.1 to 0.3)
-        const decrease = Math.random() * 0.2 + 0.1;
-        return Math.max(0, prevLevel - decrease);
-      });
-    }, 10000); // Update every 10 seconds
-
-    return () => clearInterval(interval);
   }, [gasLevel, usageData]);
+
+  // Simulate gas usage over time (for demo purposes)
+  useEffect(() => {
+    const simulateUsage = async () => {
+      // Decrease by a small random amount (0.1 to 0.3)
+      const decrease = Math.random() * 0.2 + 0.1;
+      const newLevel = Math.max(0, gasLevel - decrease);
+      setGasLevel(newLevel);
+      
+      // Save to database
+      await addReading(newLevel);
+    };
+    
+    const interval = setInterval(simulateUsage, 60000); // Every minute
+    
+    return () => clearInterval(interval);
+  }, [gasLevel]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-8 animate-fade-in">
