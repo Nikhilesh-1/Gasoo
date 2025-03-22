@@ -1,7 +1,5 @@
 
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { supabase, GasReadingRow } from '@/lib/supabase';
 
 export interface GasReading {
   _id: string;
@@ -9,10 +7,28 @@ export interface GasReading {
   timestamp: string;
 }
 
+// Transform a Supabase row to our GasReading interface
+const transformReadingRow = (row: GasReadingRow): GasReading => ({
+  _id: row.id.toString(),
+  level: row.level,
+  timestamp: row.created_at
+});
+
 export const getLatestReading = async (): Promise<GasReading | null> => {
   try {
-    const response = await axios.get(`${API_URL}/readings/latest`);
-    return response.data;
+    const { data, error } = await supabase
+      .from('gas_readings')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error('Error fetching latest gas reading:', error);
+      return null;
+    }
+
+    return data ? transformReadingRow(data as GasReadingRow) : null;
   } catch (error) {
     console.error('Error fetching latest gas reading:', error);
     return null;
@@ -21,8 +37,18 @@ export const getLatestReading = async (): Promise<GasReading | null> => {
 
 export const getReadings = async (): Promise<GasReading[]> => {
   try {
-    const response = await axios.get(`${API_URL}/readings`);
-    return response.data;
+    const { data, error } = await supabase
+      .from('gas_readings')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (error) {
+      console.error('Error fetching gas readings:', error);
+      return [];
+    }
+
+    return data ? data.map(row => transformReadingRow(row as GasReadingRow)) : [];
   } catch (error) {
     console.error('Error fetching gas readings:', error);
     return [];
@@ -31,8 +57,18 @@ export const getReadings = async (): Promise<GasReading[]> => {
 
 export const addReading = async (level: number): Promise<GasReading | null> => {
   try {
-    const response = await axios.post(`${API_URL}/readings`, { level });
-    return response.data;
+    const { data, error } = await supabase
+      .from('gas_readings')
+      .insert([{ level }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding gas reading:', error);
+      return null;
+    }
+
+    return data ? transformReadingRow(data as GasReadingRow) : null;
   } catch (error) {
     console.error('Error adding gas reading:', error);
     return null;

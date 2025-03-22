@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import GasCylinder from '@/components/GasCylinder';
 import UsageGraph from '@/components/UsageGraph';
 import RemoteControl from '@/components/RemoteControl';
@@ -9,48 +9,63 @@ import { getLatestReading, getReadings, addReading } from '@/services/apiService
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Calendar, Gauge, AlertTriangle, BarChart3 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [gasLevel, setGasLevel] = useState(35);
   const [usageData, setUsageData] = useState<Array<{ date: string; usage: number }>>([]);
   const [averageDailyUsage, setAverageDailyUsage] = useState(0);
   const [daysRemaining, setDaysRemaining] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const queryClient = useQueryClient();
+  
+  // Fetch latest reading
+  const { data: latestReading, isLoading: isLoadingLatest } = useQuery({
+    queryKey: ['latestReading'],
+    queryFn: getLatestReading,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+  
+  // Fetch all readings
+  const { data: readings, isLoading: isLoadingReadings } = useQuery({
+    queryKey: ['readings'],
+    queryFn: getReadings,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+  
+  // Mutation to add a new reading
+  const { mutate: addNewReading } = useMutation({
+    mutationFn: (level: number) => addReading(level),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['readings'] });
+      queryClient.invalidateQueries({ queryKey: ['latestReading'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to add gas reading');
+      console.error('Error adding reading:', error);
+    }
+  });
 
-  // Fetch data from backend API
+  // Update gas level when latest reading changes
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      
-      // Get the latest gas level
-      const latestReading = await getLatestReading();
-      if (latestReading) {
-        setGasLevel(latestReading.level);
-      }
-      
-      // Get historical usage data
-      const readings = await getReadings();
-      if (readings.length > 0) {
-        const formattedData = readings.map(reading => ({
-          date: new Date(reading.timestamp).toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric' 
-          }),
-          usage: reading.level
-        }));
-        setUsageData(formattedData);
-      }
-      
-      setIsLoading(false);
-    };
-    
-    fetchData();
-    
-    // Periodically update data
-    const interval = setInterval(fetchData, 30000); // Update every 30 seconds
-    
-    return () => clearInterval(interval);
-  }, []);
+    if (latestReading) {
+      setGasLevel(latestReading.level);
+    }
+  }, [latestReading]);
+
+  // Update usage data when readings change
+  useEffect(() => {
+    if (readings && readings.length > 0) {
+      const formattedData = readings.map(reading => ({
+        date: new Date(reading.timestamp).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric' 
+        }),
+        usage: reading.level
+      }));
+      setUsageData(formattedData);
+    }
+  }, [readings]);
 
   // Calculate average daily usage and days remaining
   useEffect(() => {
@@ -66,19 +81,23 @@ const Index = () => {
   // Simulate gas usage over time (for demo purposes)
   useEffect(() => {
     const simulateUsage = async () => {
+      if (!latestReading) return;
+      
       // Decrease by a small random amount (0.1 to 0.3)
       const decrease = Math.random() * 0.2 + 0.1;
       const newLevel = Math.max(0, gasLevel - decrease);
       setGasLevel(newLevel);
       
       // Save to database
-      await addReading(newLevel);
+      addNewReading(newLevel);
     };
     
     const interval = setInterval(simulateUsage, 60000); // Every minute
     
     return () => clearInterval(interval);
-  }, [gasLevel]);
+  }, [gasLevel, latestReading, addNewReading]);
+
+  const isLoading = isLoadingLatest || isLoadingReadings;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-8 animate-fade-in">
