@@ -14,7 +14,7 @@ const transformReadingRow = (row: GasReadingRow): GasReading => ({
   timestamp: row.created_at
 });
 
-// Mock data for development when Supabase is not properly configured
+// Mock data for development when Supabase is not connected or empty
 const mockReadings: GasReading[] = Array.from({ length: 10 }, (_, i) => ({
   _id: (i + 1).toString(),
   level: Math.floor(Math.random() * 80) + 20, // Random level between 20 and 100
@@ -31,7 +31,7 @@ export const getLatestReading = async (): Promise<GasReading | null> => {
       .single();
 
     if (error) {
-      console.warn('Using mock data for latest reading:', error.message);
+      console.warn('Error fetching latest reading:', error.message);
       return mockReadings[0] || null;
     }
 
@@ -51,7 +51,7 @@ export const getReadings = async (): Promise<GasReading[]> => {
       .limit(30);
 
     if (error) {
-      console.warn('Using mock data for readings:', error.message);
+      console.warn('Error fetching readings:', error.message);
       return mockReadings;
     }
 
@@ -59,7 +59,7 @@ export const getReadings = async (): Promise<GasReading[]> => {
       ? data.map(row => transformReadingRow(row as GasReadingRow)) 
       : mockReadings;
   } catch (error) {
-    console.warn('Using mock data for readings due to error:', error);
+    console.warn('Error fetching readings:', error);
     return mockReadings;
   }
 };
@@ -73,7 +73,7 @@ export const addReading = async (level: number): Promise<GasReading | null> => {
       .single();
 
     if (error) {
-      console.warn('Using mock data for adding reading:', error.message);
+      console.warn('Error adding reading:', error.message);
       const mockReading: GasReading = {
         _id: (mockReadings.length + 1).toString(),
         level,
@@ -85,7 +85,7 @@ export const addReading = async (level: number): Promise<GasReading | null> => {
 
     return data ? transformReadingRow(data as GasReadingRow) : null;
   } catch (error) {
-    console.warn('Using mock data for adding reading due to error:', error);
+    console.warn('Error adding reading:', error);
     const mockReading: GasReading = {
       _id: (mockReadings.length + 1).toString(),
       level,
